@@ -4,30 +4,42 @@ import { stdin as input, stdout as output } from "node:process";
 
 let ditto;
 let tasks: Document[] = [];
-// Attachments dont seem to show up as part of a document. Using Query item instead.
-let attachments: QueryResultItem[] = [];
 let queryResult;
+
+// Attachments/AttachmentTokens don't show up as part of a document.
+// Using QueryResultItem instead of Document.
+let attachments: QueryResultItem[] = [];
 
 async function main() {
   await init();
 
   ditto = new Ditto({
     type: "onlinePlayground",
-    appID: "0427da45-5642-4d3d-8bf8-57fe6e5ae852",
-    token: "75e250a6-a349-4527-94f1-081d79481adf",
+    appID: "Your_App_ID",
+    token: "Your_App_Token",
   });
   ditto.startSync();
 
   ditto.sync.registerSubscription(
-    `SELECT * FROM tasks WHERE isDeleted = false`,
+    `SELECT *
+    FROM tasks
+    WHERE isDeleted = false
+    `,
   );
 
   ditto.sync.registerSubscription(
-    `SELECT * FROM COLLECTION attachments (my_attachment ATTACHMENT) WHERE isDeleted = false`,
+    `SELECT *
+    FROM COLLECTION attachments (my_attachment ATTACHMENT)
+    WHERE isDeleted = false
+    `,
   );
 
   ditto.store.registerObserver(
-    `SELECT * FROM tasks WHERE isDeleted = false AND isCompleted = false`,
+    `
+    SELECT *
+    FROM tasks
+    WHERE isDeleted = false AND isCompleted = fals
+    `,
     (result) => {
       tasks = result.items.map((doc) => {
         return doc.value;
@@ -36,13 +48,13 @@ async function main() {
   );
 
   ditto.store.registerObserver(
-    "SELECT * FROM COLLECTION attachments (my_attachment ATTACHMENT) WHERE isDeleted = false AND isCompleted = false",
+    `
+    SELECT *
+    FROM COLLECTION attachments (my_attachment ATTACHMENT)
+    WHERE isDeleted = false AND isCompleted = false
+    `,
     (result) => {
       attachments = result.items;
-      // Attachments dont seem to show up as part of a document
-      //   .map((doc) => {
-      //   return doc.value;
-      // });
     },
   );
 
@@ -61,10 +73,12 @@ async function main() {
   console.log("--list");
   console.log("   List the current tasks");
   console.log("--add path_to_attachment");
-  console.log("   adds an attachment from the path to the file.");
-  console.log('   Example: "--insert Get Milk"');
+  console.log("   adds an attachment from the path provided.");
+  console.log('   Example: "--add ../files/image.png"');
   console.log("--attachments");
-  console.log("   List the current attachments");
+  console.log(
+    "   List the current attachments and the first attachemtns data.",
+  );
   console.log("--exit");
   console.log("   Exits the program");
   console.log("************* Commands *************");
@@ -78,9 +92,15 @@ async function main() {
       let body = answer.replace("--insert ", "");
       const newTask = { body, isDeleted: false, isCompleted: false };
 
-      await ditto.store.execute(`INSERT INTO tasks DOCUMENTS (:newTask)`, {
-        newTask,
-      });
+      await ditto.store.execute(
+        `
+        INSERT INTO tasks
+        DOCUMENTS (:newTask)
+        `,
+        {
+          newTask,
+        },
+      );
     }
 
     if (answer.startsWith("--add")) {
@@ -103,8 +123,10 @@ async function main() {
         // Insert the document into the collection, marking `my_attachment` as an
         // attachment field.
         await ditto.store.execute(
-          `INSERT INTO COLLECTION attachments (my_attachment ATTACHMENT)
-             DOCUMENTS (:newDQLAttachment)`,
+          `
+          INSERT INTO COLLECTION attachments (my_attachment ATTACHMENT)
+          DOCUMENTS (:newDQLAttachment)
+          `,
           { newDQLAttachment },
         );
       } else {
@@ -118,8 +140,10 @@ async function main() {
         // Insert the document into the collection, marking `my_attachment` as an
         // attachment field.
         await ditto.store.execute(
-          `INSERT INTO COLLECTION attachments (my_attachment ATTACHMENT)
-             DOCUMENTS (:newDQLAttachment)`,
+          `
+          INSERT INTO COLLECTION attachments (my_attachment ATTACHMENT)
+          DOCUMENTS (:newDQLAttachment)
+          `,
           { newDQLAttachment },
         );
       }
@@ -128,14 +152,21 @@ async function main() {
     if (answer.startsWith("--toggle")) {
       let id = answer.replace("--toggle ", "");
       queryResult = await ditto.store.execute(
-        `SELECT * FROM tasks WHERE _id = :id`,
+        `
+        SELECT *
+        FROM tasks
+        WHERE _id = :id
+        `,
         { id },
       );
       let newValue = !queryResult.items.map((item) => {
         return item.value.isCompleted;
       })[0];
       await ditto.store.execute(
-        `UPDATE tasks SET isCompleted = :newValue  WHERE _id = :id`,
+        `UPDATE tasks
+        SET isCompleted = :newValue
+        WHERE _id = :id
+        `,
         { id, newValue },
       );
     }
@@ -151,8 +182,10 @@ async function main() {
       // the '123' syntax is very important single quote
       const result = await ditto.store.execute(
         `
-           SELECT *
-           FROM COLLECTION attachments (my_attachment ATTACHMENT) WHERE _id = '123'`,
+        SELECT *
+        FROM COLLECTION attachments (my_attachment ATTACHMENT)
+        WHERE _id = '123'
+        `,
       );
       console.log(result);
 
@@ -176,7 +209,11 @@ async function main() {
     if (answer.startsWith("--delete")) {
       let id = answer.replace("--delete ", "");
       await ditto.store.execute(
-        `UPDATE tasks SET isDeleted = true WHERE _id = :id`,
+        `
+        UPDATE tasks
+        SET isDeleted = true
+        WHERE _id = :id
+        `,
         { id },
       );
     }
